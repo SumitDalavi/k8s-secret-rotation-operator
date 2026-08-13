@@ -66,6 +66,94 @@ Most K8s portfolios show Helm charts and `kubectl apply`. This project operates 
 | Secret rotation over other operators | Directly maps to compliance requirements (SOC2 credential rotation) |
 | CronJob-style scheduling | Familiar cron syntax, enterprise-ready scheduling patterns |
 
+
+## ðŸ“‹ Prerequisites
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| [Go](https://go.dev/) | >= 1.21 | Build the operator |
+| [kubectl](https://kubernetes.io/docs/tasks/tools/) | >= 1.28 | Kubernetes CLI |
+| [kind](https://kind.sigs.k8s.io/) or [minikube](https://minikube.sigs.k8s.io/) | Latest | Local K8s cluster |
+| [Docker](https://www.docker.com/) | >= 24.x | Container runtime |
+
+## ðŸš€ Step-by-Step Setup
+
+### Option A: Local Cluster (kind)
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/SumitDalavi/k8s-secret-rotation-operator.git
+cd k8s-secret-rotation-operator
+
+# 2. Create a local cluster
+kind create cluster --name secret-rotation
+
+# 3. Apply the CRD
+kubectl apply -f config/crd/secretrotation-crd.yaml
+
+# 4. Apply RBAC
+kubectl apply -f config/rbac/role.yaml
+
+# 5. Build and run the controller locally
+go run . &
+```
+
+### Option B: Build as container
+
+```bash
+docker build -t secret-rotation-operator:latest .
+kind load docker-image secret-rotation-operator:latest --name secret-rotation
+```
+
+## ðŸ§ª Usage & Demo
+
+### Step 1: Create a Kubernetes Secret to rotate
+```bash
+kubectl create secret generic db-credentials \
+  --from-literal=password=initial-password-v1
+```
+
+### Step 2: Create a SecretRotation custom resource
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: security.example.com/v1alpha1
+kind: SecretRotation
+metadata:
+  name: rotate-db-creds
+spec:
+  secretName: db-credentials
+  rotationIntervalMinutes: 5
+  key: password
+EOF
+```
+
+### Step 3: Observe automatic rotation
+```bash
+# Watch the secret value change over time
+kubectl get secret db-credentials -o jsonpath='{.data.password}' | base64 -d; echo
+# Wait for the rotation interval, then check again
+```
+
+### Step 4: Check controller logs
+```bash
+# The controller logs rotation events
+# Look for "Rotating secret" messages in the controller output
+```
+
+## âœ… Verification
+
+| Check | Command | Expected |
+|-------|---------|----------|
+| CRD registered | `kubectl get crds \| grep secretrotation` | CRD present |
+| CR created | `kubectl get secretrotations` | Resources listed |
+| Secret exists | `kubectl get secret db-credentials` | Secret present |
+| Rotation works | Check secret value after interval | Value has changed |
+
+```bash
+# Cleanup
+kind delete cluster --name secret-rotation
+```
+
 ## 👨‍💻 Author
 
 *Built to demonstrate Kubernetes API-level engineering: CRDs, controllers, and the reconciliation pattern.*
