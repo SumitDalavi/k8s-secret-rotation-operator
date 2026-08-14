@@ -67,7 +67,7 @@ Most K8s portfolios show Helm charts and `kubectl apply`. This project operates 
 | CronJob-style scheduling | Familiar cron syntax, enterprise-ready scheduling patterns |
 
 
-## ðŸ“‹ Prerequisites
+## 📋 Prerequisites
 
 | Tool | Version | Purpose |
 |------|---------|---------|
@@ -76,7 +76,7 @@ Most K8s portfolios show Helm charts and `kubectl apply`. This project operates 
 | [kind](https://kind.sigs.k8s.io/) or [minikube](https://minikube.sigs.k8s.io/) | Latest | Local K8s cluster |
 | [Docker](https://www.docker.com/) | >= 24.x | Container runtime |
 
-## ðŸš€ Step-by-Step Setup
+## 🚀 Step-by-Step Setup
 
 ### Option A: Local Cluster (kind)
 
@@ -105,7 +105,9 @@ docker build -t secret-rotation-operator:latest .
 kind load docker-image secret-rotation-operator:latest --name secret-rotation
 ```
 
-## ðŸ§ª Usage & Demo
+
+> **💡 Note on secret consumers:** After rotation, consumer pods must be restarted or use a sidecar (e.g., Reloader) to pick up the new secret value. In production, pair this operator with [stakater/Reloader](https://github.com/stakater/Reloader) for automatic rolling restarts.
+## 🧪 Usage & Demo
 
 ### Step 1: Create a Kubernetes Secret to rotate
 ```bash
@@ -140,7 +142,7 @@ kubectl get secret db-credentials -o jsonpath='{.data.password}' | base64 -d; ec
 # Look for "Rotating secret" messages in the controller output
 ```
 
-## âœ… Verification
+## ✅ Verification
 
 | Check | Command | Expected |
 |-------|---------|----------|
@@ -156,4 +158,9 @@ kind delete cluster --name secret-rotation
 
 ## 👨‍💻 Author
 
-*Built to demonstrate Kubernetes API-level engineering: CRDs, controllers, and the reconciliation pattern.*
+**Sumit Dalavi** — Senior DevSecOps / Platform Engineer
+[GitHub](https://github.com/SumitDalavi) | [LinkedIn](https://in.linkedin.com/in/sumit-dalavi-762838129)
+
+---
+
+*Built with a focus on production-grade patterns, not toy demos.*
