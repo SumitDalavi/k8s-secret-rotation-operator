@@ -1,5 +1,16 @@
 # Architecture: Kubernetes Secret Rotation Operator
 
+## System Diagram
+The following Mermaid.js sequence diagram maps the core workflow and interactions:
+
+```mermaid
+sequenceDiagram
+    Operator->>Vault: Generate new creds
+Operator->>K8s: Update Secret
+Operator->>K8s: Rollout Restart Deployment
+```
+
+
 ## The Reconciliation Pattern
 Kubernetes operators follow the **reconciliation loop** pattern:
 1. Watch for changes to the `SecretRotation` custom resource
