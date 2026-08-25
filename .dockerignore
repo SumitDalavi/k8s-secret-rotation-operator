@@ -1,18 +1,26 @@
 .git
 .gitignore
-do-not-commit/
-node_modules/
-dist/
-build/
-__pycache__/
+.dockerignore
+Dockerfile
+docker-compose.yml
+README.md
+
+# Node
+node_modules
+npm-debug.log
+
+# Python
+__pycache__
 *.pyc
-.venv/
-venv/
+*.pyo
+venv
+env
+
+# Env files
 .env
-*.md
-!README.md
-.terraform/
-*.tfstate
-*.tfstate.*
+.env.*
+
+# OS/IDE
 .DS_Store
-Thumbs.db
+.vscode
+.idea
