@@ -2,133 +2,154 @@ package controllers
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	secretopsv1alpha1 "github.com/example/k8s-secret-rotation-operator/api/v1alpha1"
+	operatorv1 "github.com/SumitDalavi/k8s-secret-rotation-operator/api/v1alpha1"
+	"github.com/SumitDalavi/k8s-secret-rotation-operator/internal/vault"
+	"github.com/SumitDalavi/k8s-secret-rotation-operator/internal/aws"
 )
 
-// SecretRotationReconciler reconciles a SecretRotation object
+// SecretRotationReconciler reconciles SecretRotation objects
 type SecretRotationReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	VaultClient *vault.Client
 }
 
-// +kubebuilder:rbac:groups=secretops.io,resources=secretrotations,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=secretops.io,resources=secretrotations/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;patch
-
 func (r *SecretRotationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
+	log := log.FromContext(ctx)
 
-	// 1. Fetch the SecretRotation resource
-	var rotation secretopsv1alpha1.SecretRotation
-	if err := r.Get(ctx, req.NamespacedName, &rotation); err != nil {
+	// Fetch the SecretRotation CR
+	sr := &operatorv1.SecretRotation{}
+	if err := r.Get(ctx, req.NamespacedName, sr); err != nil {
 		if errors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("Reconciling SecretRotation",
-		"secret", rotation.Spec.SecretRef.Name,
-		"namespace", rotation.Spec.SecretRef.Namespace)
-
-	// 2. Fetch the target Secret
-	var secret corev1.Secret
-	secretKey := types.NamespacedName{
-		Name:      rotation.Spec.SecretRef.Name,
-		Namespace: rotation.Spec.SecretRef.Namespace,
-	}
-	if err := r.Get(ctx, secretKey, &secret); err != nil {
-		if errors.IsNotFound(err) {
-			rotation.Status.Phase = "Failed"
-			rotation.Status.Message = fmt.Sprintf("Target secret %s not found", rotation.Spec.SecretRef.Name)
-			r.Status().Update(ctx, &rotation)
-			return ctrl.Result{RequeueAfter: 1 * time.Minute}, nil
+	// Check if rotation is due
+	if !r.isRotationDue(sr) {
+		next := sr.Status.NextRotationTime.Time.Sub(time.Now())
+		if next < 0 {
+			next = time.Minute
 		}
-		return ctrl.Result{}, err
+		return ctrl.Result{RequeueAfter: next}, nil
 	}
 
-	// 3. Check if rotation is due
+	log.Info("Rotating secret", "name", sr.Name, "namespace", sr.Namespace)
+
+	// Perform rotation based on provider
+	var secretData map[string]string
+	var rotateErr error
+
+	switch sr.Spec.Provider {
+	case "vault":
+		secretData, rotateErr = r.VaultClient.GetSecret(ctx, sr.Spec.SecretPath)
+	case "aws":
+		rotateErr = aws.RotateSecret(ctx, sr.Spec.SecretPath)
+	default:
+		rotateErr = fmt.Errorf("unsupported provider: %s", sr.Spec.Provider)
+	}
+
+	if rotateErr != nil {
+		log.Error(rotateErr, "Rotation failed")
+		r.setCondition(sr, "RotationFailed", metav1.ConditionTrue, "RotationError", rotateErr.Error())
+		sr.Status.Phase = "Failed"
+		r.Status().Update(ctx, sr)
+		return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
+	}
+
+	// Update Kubernetes Secret with new values
+	if secretData != nil {
+		if err := r.updateK8sSecret(ctx, sr, secretData); err != nil {
+			return ctrl.Result{}, err
+		}
+		// Rolling restart of annotated workloads
+		if err := r.triggerRollingRestart(ctx, sr); err != nil {
+			log.Error(err, "Rolling restart failed")
+		}
+	}
+
+	// Update status
 	now := metav1.Now()
-	shouldRotate := rotation.Status.LastRotation == nil // First run
+	sr.Status.LastRotationTime = &now
+	next := metav1.NewTime(now.Add(sr.Spec.RotationInterval.Duration))
+	sr.Status.NextRotationTime = &next
+	sr.Status.Phase = "Rotated"
+	sr.Status.RotationCount++
+	r.setCondition(sr, "LastRotated", metav1.ConditionTrue, "RotationSucceeded", "Secret rotated successfully")
 
-	if !shouldRotate && rotation.Status.NextRotation != nil {
-		shouldRotate = now.After(rotation.Status.NextRotation.Time)
-	}
-
-	if !shouldRotate {
-		logger.Info("Rotation not yet due, requeueing")
-		return ctrl.Result{RequeueAfter: 1 * time.Minute}, nil
-	}
-
-	// 4. Perform rotation
-	logger.Info("Rotating secret", "secret", secret.Name)
-
-	if rotation.Spec.RotationStrategy == "generate" {
-		newValue, err := generateRandomSecret(rotation.Spec.KeyLength)
-		if err != nil {
-			rotation.Status.Phase = "Failed"
-			rotation.Status.Message = fmt.Sprintf("Failed to generate secret: %v", err)
-			r.Status().Update(ctx, &rotation)
-			return ctrl.Result{RequeueAfter: 1 * time.Minute}, err
-		}
-
-		// Update all keys in the secret with rotated values
-		for key := range secret.Data {
-			secret.Data[key] = []byte(newValue)
-		}
-	}
-
-	// 5. Apply the updated secret
-	if err := r.Update(ctx, &secret); err != nil {
-		rotation.Status.Phase = "Failed"
-		rotation.Status.Message = fmt.Sprintf("Failed to update secret: %v", err)
-		r.Status().Update(ctx, &rotation)
+	if err := r.Status().Update(ctx, sr); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// 6. Update status
-	rotation.Status.LastRotation = &now
-	nextRotation := metav1.NewTime(now.Add(7 * 24 * time.Hour)) // Default: weekly
-	rotation.Status.NextRotation = &nextRotation
-	rotation.Status.RotationCount++
-	rotation.Status.Phase = "Active"
-	rotation.Status.Message = "Secret rotated successfully"
-
-	if err := r.Status().Update(ctx, &rotation); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	logger.Info("Secret rotated successfully",
-		"rotationCount", rotation.Status.RotationCount,
-		"nextRotation", nextRotation.Time)
-
-	return ctrl.Result{RequeueAfter: 1 * time.Minute}, nil
+	return ctrl.Result{RequeueAfter: sr.Spec.RotationInterval.Duration}, nil
 }
 
-func generateRandomSecret(length int) (string, error) {
-	bytes := make([]byte, length)
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
+func (r *SecretRotationReconciler) isRotationDue(sr *operatorv1.SecretRotation) bool {
+	if sr.Status.LastRotationTime == nil {
+		return true // never rotated
 	}
-	return base64.URLEncoding.EncodeToString(bytes)[:length], nil
+	next := sr.Status.LastRotationTime.Add(sr.Spec.RotationInterval.Duration)
+	return time.Now().After(next)
+}
+
+func (r *SecretRotationReconciler) updateK8sSecret(ctx context.Context, sr *operatorv1.SecretRotation, data map[string]string) error {
+	secret := &corev1.Secret{}
+	err := r.Get(ctx, types.NamespacedName{Name: sr.Spec.TargetSecret, Namespace: sr.Namespace}, secret)
+	if errors.IsNotFound(err) {
+		secret = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: sr.Spec.TargetSecret, Namespace: sr.Namespace},
+			Type:       corev1.SecretTypeOpaque,
+		}
+	}
+	if secret.StringData == nil {
+		secret.StringData = make(map[string]string)
+	}
+	for k, v := range data {
+		secret.StringData[k] = v
+	}
+	if errors.IsNotFound(err) {
+		return r.Create(ctx, secret)
+	}
+	return r.Update(ctx, secret)
+}
+
+func (r *SecretRotationReconciler) triggerRollingRestart(ctx context.Context, sr *operatorv1.SecretRotation) error {
+	// Patch each workload deployment with a restart annotation to trigger rolling update
+	for _, ref := range sr.Spec.WorkloadRefs {
+		patch := client.MergeFrom(&corev1.Pod{})
+		_ = r.Patch(ctx, &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: ref.Name, Namespace: sr.Namespace,
+				Annotations: map[string]string{
+					"secret-rotation-operator/restart-at": time.Now().Format(time.RFC3339),
+				},
+			},
+		}, patch)
+	}
+	return nil
+}
+
+func (r *SecretRotationReconciler) setCondition(sr *operatorv1.SecretRotation, condType string, status metav1.ConditionStatus, reason, msg string) {
+	sr.Status.Conditions = append(sr.Status.Conditions, metav1.Condition{
+		Type: condType, Status: status, Reason: reason, Message: msg,
+		LastTransitionTime: metav1.Now(),
+	})
 }
 
 func (r *SecretRotationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&secretopsv1alpha1.SecretRotation{}).
+		For(&operatorv1.SecretRotation{}).
+		Owns(&corev1.Secret{}).
 		Complete(r)
 }
