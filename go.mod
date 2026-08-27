@@ -1,6 +1,6 @@
 module github.com/SumitDalavi/k8s-secret-rotation-operator
 
-go 1.24.0
+go 1.26.0
 
 require (
 	k8s.io/api v0.37.0
