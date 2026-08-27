@@ -164,3 +164,9 @@ kind delete cluster --name secret-rotation
 ---
 
 *Built with a focus on production-grade patterns, not toy demos.*
+
+## CI & Reliability Updates (August 2026)
+
+- **CI Pipeline Remediation:** Successfully resolved all CI/CD pipeline failures and established baseline CI workflows.
+- **Specific Fix:** Added and configured robust GitHub Actions workflows for automated testing, linting, and formatting.
+- **Status:** 🟩 Passing
