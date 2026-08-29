@@ -1,14 +1,48 @@
-# Architecture: Kubernetes Secret Rotation Operator
+# Architecture — k8s-secret-rotation-operator
+> Last updated: 2026-08-29 | Maturity: Full Prototype
+> _Kubernetes operator for automated secret rotation._
 
 ## System Diagram
 The following Mermaid.js sequence diagram maps the core workflow and interactions:
 
 ```mermaid
-sequenceDiagram
-    Operator->>Vault: Generate new creds
-Operator->>K8s: Update Secret
-Operator->>K8s: Rollout Restart Deployment
+flowchart TD
+    Dev(["Developer"])
+    API["kube-apiserver"]
+    Operator["k8s-secret-rotation-operator"]
+    Secret["K8s Secret"]
+    Vault["HashiCorp Vault (Optional Backend)"]
+
+    Dev -->|"kubectl apply SecretRotation"| API
+    API -->|"Watch Event"| Operator
+    Operator -->|"Check Schedule"| Operator
+    Operator -->|"Generate/Fetch new credential"| Vault
+    Vault -->|"Return new credential"| Operator
+    Operator -->|"Reconcile (Update)"| Secret
 ```
+
+## Component Table
+
+| Component | File | Responsibility | Tech |
+|---|---|---|---|
+| SecretRotation CRD | `api/v1alpha1/secretrotation_types.go` | Defines the API schema for rotation policies | Go |
+| Controller | `controllers/secretrotation_controller.go` | Main reconciliation loop enforcing schedule | Go |
+| Generator | `internal/generator/generator.go` | Logic for auto-generating strong keys or fetching from Vault | Go |
+
+## Port Assignments
+
+| Service | Port | Notes |
+|---|---|---|
+| Metrics | `8080` | Prometheus metrics endpoint exposed by controller-runtime |
+| Healthz | `8081` | Liveness and readiness probes |
+
+## Dependency Honesty Table
+
+| Dependency | Status | Notes |
+|---|---|---|
+| Kubernetes API Server | **Real** | Controller directly talks to the K8s API to manage resources. |
+| HashiCorp Vault | **Optional** | E2E test scripts use Vault Dev mode to verify external backend rotation. |
+| kind (Local Cluster) | **Optional** | Used for E2E tests and local development. |
 
 
 ## The Reconciliation Pattern
