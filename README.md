@@ -1,6 +1,7 @@
 # Kubernetes Secret Rotation Operator 🔄🔐
 
-> A custom Kubernetes operator built with kubebuilder that automatically rotates secrets on a configurable schedule — moving past Helm/Rancher-level K8s into controller/API-level engineering.
+> **Maturity:** Full Prototype
+> _A custom Kubernetes operator built with kubebuilder that automatically rotates secrets on a configurable schedule — moving past Helm/Rancher-level K8s into controller/API-level engineering._
 
 ## The Problem
 
@@ -56,6 +57,21 @@ Most K8s portfolios show Helm charts and `kubectl apply`. This project operates 
 - **Framework**: kubebuilder
 - **Libraries**: controller-runtime, client-go
 - **CRDs**: Custom Resource Definitions
+
+## Mock Boundaries (Honest Scope)
+
+| What | Status | Details |
+|---|---|---|
+| Kubernetes API | **Real** | Directly reconciles native K8s Secrets against API Server. |
+| HashiCorp Vault | **Optional** | Tested against local Vault Dev server for external backend rotation. |
+| kind Cluster | **Optional** | Tested on `kind` cluster locally, can deploy to any K8s cluster. |
+
+## 📚 Documentation
+
+- [Architecture](docs/ARCHITECTURE.md) — System diagram and component details
+- [Runbook](docs/runbook.md) — Setup, commands, and expected outputs
+- [Decisions](docs/decisions.md) — ADRs for operator pattern choices
+- [Changelog](docs/changelog.md) — Change history
 
 ## Decision Log
 
