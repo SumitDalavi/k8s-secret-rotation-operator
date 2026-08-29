@@ -1,5 +1,7 @@
 # Kubernetes Secret Rotation Operator 🔄🔐
 
+[![CI Pipeline](https://github.com/SumitDalavi/k8s-secret-rotation-operator/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/SumitDalavi/k8s-secret-rotation-operator/actions/workflows/ci.yml)
+
 > **Maturity:** Full Prototype
 > _A custom Kubernetes operator built with kubebuilder that automatically rotates secrets on a configurable schedule — moving past Helm/Rancher-level K8s into controller/API-level engineering._
 
