@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secret-rotation-operator
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secret-rotation-operator
+  template:
+    metadata:
+      labels:
+        app: secret-rotation-operator
+    spec:
+      containers:
+      - name: manager
+        image: secret-rotation-operator:local
+        imagePullPolicy: Never
+        command:
+        - /manager

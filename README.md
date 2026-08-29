@@ -179,7 +179,7 @@ kind delete cluster --name secret-rotation
 
 ---
 
-*Built with a focus on production-grade patterns, not toy demos.*
+*Built with a focus on robust patterns, not toy demos.*
 
 ## CI & Reliability Updates (August 2026)
 

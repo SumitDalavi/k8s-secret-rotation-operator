@@ -1,0 +1,13 @@
+{
+    "timestamp":  "2026-08-29T10:30:00Z",
+    "metrics":  {
+                    "total_rotations_performed":  12,
+                    "vault_api_latency_avg_ms":  15.2,
+                    "k8s_api_latency_avg_ms":  18.5,
+                    "failed_rotations":  0,
+                    "recovery_time_after_vault_downtime_ms":  450
+                },
+    "status":  "success",
+    "notes":  "Dummy benchmark results generated to demonstrate secret rotation metrics when using a Vault backend.",
+    "illustrative":  true
+}
