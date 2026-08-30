@@ -23,7 +23,10 @@ func newScheme() *runtime.Scheme {
 func TestReconcile_NotFound(t *testing.T) {
 	s := newScheme()
 	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
-	r := &SecretRotationReconciler{Client: fakeClient}
+	r := &SecretRotationReconciler{
+		Client: fakeClient,
+		Scheme: s,
+	}
 
 	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: "nonexistent", Namespace: "default"}}
 	res, err := r.Reconcile(context.Background(), req)
@@ -57,7 +60,10 @@ func TestReconcile_Success(t *testing.T) {
 		WithObjects(sr).
 		Build()
 
-	r := &SecretRotationReconciler{Client: fakeClient}
+	r := &SecretRotationReconciler{
+		Client: fakeClient,
+		Scheme: s,
+	}
 	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: "my-rotation", Namespace: "default"}}
 
 	res, err := r.Reconcile(context.Background(), req)
@@ -93,7 +99,10 @@ func TestReconcile_MultipleRotations(t *testing.T) {
 		WithObjects(sr).
 		Build()
 
-	r := &SecretRotationReconciler{Client: fakeClient}
+	r := &SecretRotationReconciler{
+		Client: fakeClient,
+		Scheme: s,
+	}
 	req := ctrl.Request{NamespacedName: types.NamespacedName{Name: "multi-rot", Namespace: "default"}}
 
 	for i := 0; i < 3; i++ {
