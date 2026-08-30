@@ -7,7 +7,7 @@ log() { echo "[e2e] $*"; }
 # Start Vault Dev Server in Docker
 log "Starting Vault Dev Server..."
 docker rm -f vault-dev 2>/dev/null || true
-docker run -d --name vault-dev -p 8200:8200 -e VAULT_DEV_ROOT_TOKEN_ID=root vault:1.15 server -dev
+docker run -d --name vault-dev -p 8200:8200 -e VAULT_DEV_ROOT_TOKEN_ID=root hashicorp/vault:1.15 server -dev
 
 # Initialize a secret in Vault
 sleep 3
