@@ -1,4 +1,4 @@
-apiVersion: security.example.com/v1alpha1
+apiVersion: secretops.io/v1alpha1
 kind: SecretRotation
 metadata:
   name: test-rotation
