@@ -1,0 +1,9 @@
+apiVersion: security.example.com/v1alpha1
+kind: SecretRotation
+metadata:
+  name: test-rotation
+  namespace: default
+spec:
+  secretName: my-db-secret
+  vaultPath: secret/data/database/credentials
+  rotationInterval: 1m

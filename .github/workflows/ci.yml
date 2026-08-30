@@ -34,3 +34,23 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build Docker Image
         run: docker build -t test-image .
+  e2e:
+    name: E2E Secret Rotation Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 1.21.x
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.10.0
+      - name: Run E2E Test
+        run: bash e2e/test_vault_rotation_e2e.sh
+      - name: Upload benchmark metrics
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vault-rotation-metrics
+          path: benchmarks/results/
+          retention-days: 90
