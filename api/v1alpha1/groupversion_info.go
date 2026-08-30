@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	GroupVersion = schema.GroupVersion{Group: "operator.example.com", Version: "v1alpha1"}
+	GroupVersion = schema.GroupVersion{Group: "secretops.io", Version: "v1alpha1"}
 
 	SchemeBuilder = &scheme.Builder{GroupVersion: GroupVersion}
 
