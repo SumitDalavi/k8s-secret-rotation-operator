@@ -4,6 +4,8 @@ metadata:
   name: test-rotation
   namespace: default
 spec:
-  secretName: my-db-secret
-  vaultPath: secret/data/database/credentials
-  rotationInterval: 1m
+  secretRef:
+    name: my-db-secret
+    namespace: default
+  rotationSchedule: "* * * * *"
+  rotationStrategy: external
