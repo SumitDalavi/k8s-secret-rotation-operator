@@ -12,7 +12,7 @@ docker run -d --name vault-dev -p 8200:8200 -e VAULT_DEV_ROOT_TOKEN_ID=root hash
 # Initialize a secret in Vault
 export VAULT_ADDR='http://127.0.0.1:8200'
 sleep 3
-docker exec vault-dev vault kv put secret/database/credentials username=admin password=supersecret
+docker exec -e VAULT_ADDR="http://127.0.0.1:8200" vault-dev vault kv put secret/database/credentials username=admin password=supersecret
 export VAULT_ADDR="http://127.0.0.1:8200"
 export VAULT_TOKEN="root"
 
