@@ -10,6 +10,7 @@ docker rm -f vault-dev 2>/dev/null || true
 docker run -d --name vault-dev -p 8200:8200 -e VAULT_DEV_ROOT_TOKEN_ID=root hashicorp/vault:1.15 server -dev
 
 # Initialize a secret in Vault
+export VAULT_ADDR='http://127.0.0.1:8200'
 sleep 3
 docker exec vault-dev vault kv put secret/database/credentials username=admin password=supersecret
 export VAULT_ADDR="http://127.0.0.1:8200"
