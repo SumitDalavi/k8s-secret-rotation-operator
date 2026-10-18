@@ -1,6 +1,8 @@
 # Kubernetes Secret Rotation Operator 🔄🔐
 
 [![CI Pipeline](https://github.com/SumitDalavi/k8s-secret-rotation-operator/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/SumitDalavi/k8s-secret-rotation-operator/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/SumitDalavi/k8s-secret-rotation-operator)](https://github.com/SumitDalavi/k8s-secret-rotation-operator/releases)
+[![Release Workflow](https://github.com/SumitDalavi/k8s-secret-rotation-operator/actions/workflows/release.yml/badge.svg)](https://github.com/SumitDalavi/k8s-secret-rotation-operator/actions/workflows/release.yml)
 
 > **Maturity:** Full Prototype
 > _A custom Kubernetes operator built with kubebuilder that automatically rotates secrets on a configurable schedule — moving past Helm/Rancher-level K8s into controller/API-level engineering._
@@ -173,6 +175,15 @@ kubectl get secret db-credentials -o jsonpath='{.data.password}' | base64 -d; ec
 # Cleanup
 kind delete cluster --name secret-rotation
 ```
+
+## 🔒 Release & Security Verification
+
+Every tagged release (`v*.*.*`) triggers an automated DevSecOps release workflow:
+1. **Automated Testing:** Runs `go test -v ./...` unit tests.
+2. **Container Image Build:** Builds the minimal distroless operator image (`ghcr.io/sumitdalavi/k8s-secret-rotation-operator:<tag>`).
+3. **Vulnerability Scanning:** Scans the operator container image using [Aqua Security Trivy](https://github.com/aquasecurity/trivy-action) for `HIGH` and `CRITICAL` CVEs.
+4. **SBOM Generation:** Generates a Software Bill of Materials (SBOM) in SPDX JSON format (`sbom.spdx.json`) using [Anchore Syft](https://github.com/anchore/sbom-action).
+5. **GitHub Release Publishing:** Packages release notes and attaches `sbom.spdx.json` as a verifiable supply-chain asset.
 
 ## 👨‍💻 Author
 
