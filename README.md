@@ -1,8 +1,12 @@
 # Kubernetes Secret Rotation Operator 🔄🔐
 
 [![CI Pipeline](https://github.com/SumitDalavi/k8s-secret-rotation-operator/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/SumitDalavi/k8s-secret-rotation-operator/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/SumitDalavi/k8s-secret-rotation-operator)](https://github.com/SumitDalavi/k8s-secret-rotation-operator/releases)
+[![Release](https://img.shields.io/github/v/release/SumitDalavi/k8s-secret-rotation-operator?color=0969da&label=release&logo=github)](https://github.com/SumitDalavi/k8s-secret-rotation-operator/releases)
 [![Release Workflow](https://github.com/SumitDalavi/k8s-secret-rotation-operator/actions/workflows/release.yml/badge.svg)](https://github.com/SumitDalavi/k8s-secret-rotation-operator/actions/workflows/release.yml)
+[![GHCR Container](https://img.shields.io/badge/ghcr.io-v0.2.0-blue?logo=docker&logoColor=white)](https://github.com/SumitDalavi/k8s-secret-rotation-operator/pkgs/container/k8s-secret-rotation-operator)
+[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white)](https://golang.org)
+[![SBOM](https://img.shields.io/badge/SBOM-SPDX%202.3-blueviolet?logo=spdx)](https://github.com/SumitDalavi/k8s-secret-rotation-operator/releases/tag/v0.2.0)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 > **Maturity:** Full Prototype
 > _A custom Kubernetes operator built with kubebuilder that automatically rotates secrets on a configurable schedule — moving past Helm/Rancher-level K8s into controller/API-level engineering._
@@ -111,7 +115,6 @@ Enterprise deployment with production-grade backends, security scans, and contai
 | Secret rotation over other operators | Directly maps to compliance requirements (SOC2 credential rotation) |
 | CronJob-style scheduling | Familiar cron syntax, enterprise-ready scheduling patterns |
 
-
 ## 📋 Prerequisites
 
 | Tool | Version | Purpose |
@@ -149,7 +152,6 @@ go run . &
 docker build -t secret-rotation-operator:latest .
 kind load docker-image secret-rotation-operator:latest --name secret-rotation
 ```
-
 
 > **💡 Note on secret consumers:** After rotation, consumer pods must be restarted or use a sidecar (e.g., Reloader) to pick up the new secret value. In production, pair this operator with [stakater/Reloader](https://github.com/stakater/Reloader) for automatic rolling restarts.
 ## 🧪 Usage & Demo
