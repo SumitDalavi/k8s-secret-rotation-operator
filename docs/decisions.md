@@ -13,3 +13,10 @@ We chose to build a custom `SecretRotation` operator. This is to demonstrate dee
 **Consequences:**  
 - ✅ Demonstrates API-level engineering skills.
 - ⚠️ In a real enterprise, ESO might be preferred for managing external sync, while this operator is better suited for *auto-generating* new K8s-native secrets (like rotation of auto-generated DB passwords).
+
+## ADR-002: Progressive Credential Loading (PCL) Architecture
+- **Context:** Production hardening required live backends (PostgreSQL, Redis, OpenAI, Anthropic), but removing mocks would break CI pipelines and create high developer onboarding friction.
+- **Decision:** Implement Progressive Credential Loading. Keep in-memory and local mock heuristics as the default safe baseline, while wrapping external integrations in auto-promoting factory adapters triggered by environment variables.
+- **Consequences:** 
+  - *Pros:* 100% CI pass rate without requiring external secrets; zero setup friction for new contributors; progressive upgrade to production clusters.
+  - *Cons:* Adds lightweight factory abstraction layers and runtime credential detection logic.
