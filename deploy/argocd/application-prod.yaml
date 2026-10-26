@@ -1,0 +1,39 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: k8s-secret-rotation-operator-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: platform-engineering
+    environment: prod
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/SumitDalavi/k8s-secret-rotation-operator.git
+    targetRevision: master
+    path: deploy/k8s/overlays/prod
+    kustomize:
+      images:
+        - name: ghcr.io/sumitdalavi/k8s-secret-rotation-operator
+          newTag: v0.2.0
+  destination:
+    server: https://prod-k8s.internal.net:6443
+    namespace: secret-rotation-system
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

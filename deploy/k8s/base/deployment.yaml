@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-secret-rotation-operator
+  labels:
+    app.kubernetes.io/name: k8s-secret-rotation-operator
+    app.kubernetes.io/part-of: platform-engineering
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: k8s-secret-rotation-operator
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: k8s-secret-rotation-operator
+        app.kubernetes.io/part-of: platform-engineering
+    spec:
+      serviceAccountName: k8s-secret-rotation-operator
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: app
+          image: ghcr.io/sumitdalavi/k8s-secret-rotation-operator:v0.2.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+          securityContext:
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi

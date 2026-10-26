@@ -1,0 +1,14 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8s-secret-rotation-operator
+spec:
+  replicas: 2
+  template:
+    spec:
+      containers:
+        - name: app
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
